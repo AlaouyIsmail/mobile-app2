@@ -3,71 +3,40 @@ import 'package:path/path.dart';
 import '../models/produit.dart';
 
 class DBHelper {
-  static final DBHelper _instance = DBHelper._internal();
-  static Database? _database;
-
-  factory DBHelper() {
-    return _instance;
-  }
-
-  DBHelper._internal();
-
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB();
-    return _database!;
-  }
-
-  Future<Database> _initDB() async {
-    // Obtient le chemin d'accès à la base de données.
-    String path = join(await getDatabasesPath(), 'stock_database.db');
-
-    // Ouvre la DB et crée la table si elle n'existe pas.
-    return await openDatabase(
+  static Database? database;
+  static Future<Database> initDB() async {
+    if (database != null) return database!;
+    String path = join(await getDatabasesPath(), 'stock.db');
+    database = await openDatabase(
       path,
       version: 1,
-      onCreate: _onCreate,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE produits(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom TEXT,
+            prix REAL,
+            quantite INTEGER
+          )
+        ''');
+      },
     );
+    return database!;
   }
 
-  // Création de la table
-  Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE produits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nom TEXT,
-        prix REAL,
-        quantite INTEGER
-      )
-    ''');
+  static Future<void> insert(Produit produit) async {
+    final db = await initDB();
+    await db.insert('produits', produit.toMap());
   }
 
-  // 1. Ajouter un produit (CREATE)
-  Future<void> insertProduit(Produit produit) async {
-    final db = await database;
-    await db.insert(
-      'produits',
-      produit.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+  static Future<List<Produit>> getAll() async {
+    final db = await initDB();
+    final data = await db.query('produits');
+    return data.map((e) => Produit.fromMap(e)).toList();
   }
 
-  // 2. Afficher les produits (READ)
-  Future<List<Produit>> getProduits() async {
-    final db = await database;
-
-    final List<Map<String, dynamic>> maps = await db.query('produits');
-
-    // Convertit la List<Map<String, dynamic>> en List<Produit>
-    return List.generate(maps.length, (i) {
-      return Produit.fromMap(maps[i]);
-    });
-  }
-
-  // 3. Modifier un produit (UPDATE)
-  Future<void> updateProduit(Produit produit) async {
-    final db = await database;
-
+  static Future<void> update(Produit produit) async {
+    final db = await initDB();
     await db.update(
       'produits',
       produit.toMap(),
@@ -76,9 +45,8 @@ class DBHelper {
     );
   }
 
-  // 4. Supprimer un produit (DELETE)
-  Future<void> deleteProduit(int id) async {
-    final db = await database;
+  static Future<void> delete(int id) async {
+    final db = await initDB();
     await db.delete(
       'produits',
       where: 'id = ?',

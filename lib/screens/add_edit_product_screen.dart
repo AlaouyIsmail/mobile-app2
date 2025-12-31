@@ -3,61 +3,56 @@ import '../models/produit.dart';
 import '../database/db_helper.dart';
 
 class AddEditProductScreen extends StatefulWidget {
-  final Produit? produit; // Null si c'est un ajout
+  final Produit? produit;
   const AddEditProductScreen({this.produit, super.key});
 
   @override
-  State<AddEditProductScreen> createState() => _AddEditProductScreenState();
+  State<AddEditProductScreen> createState() => AddEditProductScreenState();
 }
 
-class _AddEditProductScreenState extends State<AddEditProductScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nomController = TextEditingController();
-  final _prixController = TextEditingController();
-  final _quantiteController = TextEditingController();
+class AddEditProductScreenState extends State<AddEditProductScreen> {
+  final formKey = GlobalKey<FormState>();
+  final nomController = TextEditingController();
+  final prixController = TextEditingController();
+  final quantiteController = TextEditingController();
 
-  // Initialisation des champs si on est en mode modification
   @override
   void initState() {
     super.initState();
     if (widget.produit != null) {
-      _nomController.text = widget.produit!.nom;
-      _prixController.text = widget.produit!.prix.toString();
-      _quantiteController.text = widget.produit!.quantite.toString();
+      nomController.text = widget.produit!.nom;
+      prixController.text = widget.produit!.prix.toString();
+      quantiteController.text = widget.produit!.quantite.toString();
     }
   }
 
   @override
   void dispose() {
-    _nomController.dispose();
-    _prixController.dispose();
-    _quantiteController.dispose();
+    nomController.dispose();
+    prixController.dispose();
+    quantiteController.dispose();
     super.dispose();
   }
 
-  void _saveProduct() async {
-    if (_formKey.currentState!.validate()) {
-      final nom = _nomController.text;
-      final prix = double.tryParse(_prixController.text) ?? 0.0;
-      final quantite = int.tryParse(_quantiteController.text) ?? 0;
+  void saveProduct() async {
+    if (formKey.currentState!.validate()) {
+      final nom = nomController.text;
+      final prix = double.tryParse(prixController.text) ?? 0.0;
+      final quantite = int.tryParse(quantiteController.text) ?? 0;
 
       final newProduct = Produit(
-        id: widget.produit?.id, // Garde l'ID pour la modification
+        id: widget.produit?.id,
         nom: nom,
         prix: prix,
         quantite: quantite,
       );
 
-      final dbHelper = DBHelper();
       if (widget.produit == null) {
-        // Mode Ajout (CREATE)
-        await dbHelper.insertProduit(newProduct);
+        await DBHelper.insert(newProduct);
       } else {
-        // Mode Modification (UPDATE)
-        await dbHelper.updateProduit(newProduct);
+        await DBHelper.update(newProduct);
       }
 
-      // Retourne à l'écran précédent (et déclenche un rechargement)
       if (mounted) Navigator.pop(context, true);
     }
   }
@@ -72,48 +67,38 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         backgroundColor: Colors.teal,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
-          key: _formKey,
+          key: formKey,
           child: ListView(
             children: [
               TextFormField(
-                controller: _nomController,
+                controller: nomController,
                 decoration: const InputDecoration(labelText: 'Nom du Produit'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un nom';
-                  }
-                  return null;
-                },
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Veuillez entrer un nom' : null,
               ),
               TextFormField(
-                controller: _prixController,
+                controller: prixController,
                 decoration: const InputDecoration(labelText: 'Prix'),
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (double.tryParse(value ?? '') == null) {
-                    return 'Veuillez entrer un prix valide';
-                  }
-                  return null;
-                },
+                validator: (value) => double.tryParse(value ?? '') == null
+                    ? 'Veuillez entrer un prix valide'
+                    : null,
               ),
               TextFormField(
-                controller: _quantiteController,
+                controller: quantiteController,
                 decoration: const InputDecoration(labelText: 'Quantité'),
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (int.tryParse(value ?? '') == null) {
-                    return 'Veuillez entrer une quantité entière';
-                  }
-                  return null;
-                },
+                validator: (value) => int.tryParse(value ?? '') == null
+                    ? 'Veuillez entrer une quantité entière'
+                    : null,
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: _saveProduct,
+                onPressed: saveProduct,
                 icon: Icon(isEditing ? Icons.save : Icons.add),
-                label: Text(isEditing ? 'Sauvegarder les modifications' : 'Ajouter le produit'),
+                label: Text(isEditing ? 'Sauvegarder' : 'Ajouter'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
