@@ -3,6 +3,7 @@ import '../models/produit.dart';
 import '../database/db_helper.dart';
 import '../widgets/product_item.dart';
 import 'add_edit_product_screen.dart';
+import 'about_screen.dart'; // <-- Importation de la nouvelle page 'À Propos'
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,9 +45,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed == true) {
       await _dbHelper.deleteProduit(id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$nom supprimé.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$nom supprimé.')),
+        );
+      }
       _loadProducts(); // Recharger la liste après la suppression
     }
   }
@@ -88,9 +91,60 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestion de Stock'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
+
+      // --- DÉBUT DU MENU LATÉRAL (DRAWER) ---
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.teal,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.inventory_2, color: Colors.white, size: 40),
+                  SizedBox(height: 8),
+                  Text(
+                    'Menu du Stock',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Lien vers la page Principale
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Accueil (Stock)'),
+              onTap: () {
+                Navigator.pop(context); // Ferme le drawer
+              },
+            ),
+            const Divider(),
+            // Lien vers la page À Propos
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('À Propos'),
+              onTap: () {
+                Navigator.pop(context); // Ferme le drawer
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      // --- FIN DU MENU LATÉRAL (DRAWER) ---
+
       body: FutureBuilder<List<Produit>>(
         future: _produitsFuture,
         builder: (context, snapshot) {
